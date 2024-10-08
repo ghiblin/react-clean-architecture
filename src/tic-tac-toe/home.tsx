@@ -9,6 +9,6 @@ export function Home() {
   }
 
   if (controller.initialize.isSuccess) {
-    return <Game game={controller.initialize.data} />;
+    return <Game game={controller.initialize.data!} />;
   }
 }

@@ -4,34 +4,61 @@ import { JumpTo } from "../use-cases/jump-to.use-case";
 import { Play } from "../use-cases/play.use-case";
 import { useDependencyContext } from "../../common/dependency-context";
 import { IGamePresenter } from "../ports/game-presenter.port";
+import { useMutation } from "@tanstack/react-query";
+
+export function useJumpToMutation(
+  onSuccess: (game: GameDomainModel.GateState) => void
+) {
+  const { board } = useDependencyContext();
+
+  const jumpTo = useMemo(() => new JumpTo(board), [board]);
+
+  const mutation = useMutation({
+    mutationKey: ["jumpTo"],
+    mutationFn: (step: number) => jumpTo.execute({ step }),
+    onSuccess,
+  });
+
+  return {
+    data: mutation.data,
+    error: mutation.error,
+    isPending: mutation.isPending,
+    isError: mutation.isError,
+    mutate: mutation.mutate,
+  };
+}
+
+export function usePlayMutation(
+  onSuccess: (game: GameDomainModel.GateState) => void
+) {
+  const { board } = useDependencyContext();
+
+  const play = useMemo(() => new Play(board), [board]);
+
+  const mutation = useMutation({
+    mutationKey: ["play"],
+    mutationFn: ({ step, square }: { step: number; square: number }) =>
+      play.execute({ step, square }),
+    onSuccess,
+  });
+
+  return {
+    data: mutation.data,
+    error: mutation.error,
+    isPending: mutation.isPending,
+    isError: mutation.isError,
+    mutate: mutation.mutate,
+  };
+}
 
 export function useGameController(
   defaultGame: GameDomainModel.GateState,
   presenter: IGamePresenter
 ) {
   const [currentGame, setCurrentGame] = useState(defaultGame);
-  const { board } = useDependencyContext();
 
-  const useCases = useMemo(
-    () => ({ jumpTo: new JumpTo(board), play: new Play(board) }),
-    [board]
-  );
-
-  const onPlay = useCallback(
-    (square: number) => {
-      useCases.play
-        .execute({ step: currentGame.step, square })
-        .then(setCurrentGame);
-    },
-    [currentGame.step, useCases.play]
-  );
-
-  const onJumpTo = useCallback(
-    (step: number) => {
-      useCases.jumpTo.execute({ step }).then(setCurrentGame);
-    },
-    [useCases.jumpTo]
-  );
+  const jumpTo = useJumpToMutation(setCurrentGame);
+  const play = usePlayMutation(setCurrentGame);
 
   const { squares, status, moves } = useMemo(
     () =>
@@ -42,6 +69,20 @@ export function useGameController(
         xIsNext: currentGame.xIsNext,
       }),
     [currentGame, presenter]
+  );
+
+  const onPlay = useCallback(
+    (square: number) => {
+      play.mutate({ step: currentGame.step, square });
+    },
+    [currentGame.step, play]
+  );
+
+  const onJumpTo = useCallback(
+    (step: number) => {
+      jumpTo.mutate(step);
+    },
+    [jumpTo]
   );
 
   return { squares, status, moves, onPlay, onJumpTo };

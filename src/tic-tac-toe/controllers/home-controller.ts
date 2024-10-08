@@ -1,37 +1,32 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useDependencyContext } from "../../common/dependency-context";
 import { GameDomainModel } from "../game.domain-model";
 import { Initialize } from "../use-cases/initialize.use-case";
+import { useQuery } from "@tanstack/react-query";
 
-type InitializeState = { isPending: boolean } & (
-  | {
-      isSuccess: false;
-      data: null;
-    }
-  | {
-      isSuccess: true;
-      data: GameDomainModel.GateState;
-    }
-);
-
-export function useHomeController() {
+export function useInitializeQuery() {
   const { board } = useDependencyContext();
 
-  const [initialize, setInitialize] = useState<InitializeState>({
-    isPending: true,
-    isSuccess: false,
-    data: null,
+  const initialize = useMemo(() => {
+    return new Initialize(board);
+  }, [board]);
+
+  const query = useQuery<GameDomainModel.GateState>({
+    queryKey: ["initialize"],
+    queryFn: () => initialize.execute(),
   });
 
-  useEffect(() => {
-    new Initialize(board).execute().then((game) => {
-      setInitialize({
-        isPending: false,
-        isSuccess: true,
-        data: game,
-      });
-    });
-  }, [board]);
+  return {
+    data: query.data,
+    error: query.error,
+    isPending: query.isPending,
+    isError: query.isError,
+    isSuccess: query.isSuccess,
+  };
+}
+
+export function useHomeController() {
+  const initialize = useInitializeQuery();
 
   return { initialize };
 }
