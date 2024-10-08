@@ -1,12 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "../tic-tac-toe/app";
+import { Home } from "../tic-tac-toe/home";
+import { DependencyContextProvider } from "./dependency-context-provider";
 import "./index.css";
 
 export function bootstrap() {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <App />
+      <DependencyContextProvider>
+        <Home />
+      </DependencyContextProvider>
     </StrictMode>
   );
 }
